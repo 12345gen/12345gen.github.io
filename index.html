@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Number Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .number-pop {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Custom scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-gray-800 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-indigo-100">
+
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <!-- Header -->
+        <div class="bg-white p-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600">
+                    <i class="fas fa-dice text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">Randomizer Pro</h1>
+                    <p class="text-gray-400 text-xs">Advanced Generator</p>
+                </div>
+            </div>
+            <button onclick="resetDefaults()" class="text-xs text-gray-400 hover:text-indigo-500 transition-colors" title="Reset all settings">
+                <i class="fas fa-undo mr-1"></i> Reset
+            </button>
+        </div>
+
+        <!-- Result Display Area -->
+        <div class="min-h-[160px] p-6 bg-slate-50 flex items-center justify-center border-b border-gray-100 relative">
+            <!-- Single Number Display (Default) -->
+            <div id="singleDisplay" class="hidden">
+                <span class="text-7xl font-extrabold text-indigo-600 tracking-tight" id="singleValue">?</span>
+            </div>
+
+            <!-- Multi Number Display -->
+            <div id="multiDisplay" class="w-full flex flex-wrap justify-center gap-3">
+                <span class="text-gray-400 text-sm font-medium animate-pulse">Ready to generate...</span>
+            </div>
+        </div>
+
+        <!-- Controls Container -->
+        <div class="p-6 space-y-6">
+            
+            <!-- Row 1: Min, Max, Quantity -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Min</label>
+                    <input type="number" id="minInput" value="1" 
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-center transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Max</label>
+                    <input type="number" id="maxInput" value="100" 
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-center transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Quantity</label>
+                    <input type="number" id="countInput" value="1" min="1" max="50"
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-center transition-all text-indigo-600">
+                </div>
+            </div>
+
+            <!-- Row 2: Advanced Options (Exclude & No Duplicates) -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3">
+                <!-- Exclude -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 flex items-center">
+                        <i class="fas fa-ban mr-1.5 text-red-400"></i> Exclude Numbers
+                    </label>
+                    <input type="text" id="excludeInput" 
+                        class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-200 outline-none text-sm" 
+                        placeholder="e.g. 13, 4, 666 (Comma separated)">
+                </div>
+
+                <!-- Toggle: No Duplicates -->
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-sm font-medium text-gray-600">No Duplicates</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="uniqueToggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMsg" class="hidden bg-red-50 text-red-600 text-xs font-medium px-4 py-3 rounded-lg flex items-start">
+                <i class="fas fa-exclamation-circle mt-0.5 mr-2 flex-shrink-0"></i>
+                <span id="errorText">Error message</span>
+            </div>
+
+            <!-- Generate Button -->
+            <button onclick="startGeneration()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform transition-all duration-200 flex items-center justify-center space-x-2 active:scale-[0.98]">
+                <i class="fas fa-bolt"></i>
+                <span>Generate</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="mt-6 w-full max-w-lg">
+        <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Session History</span>
+            <button onclick="clearHistory()" class="text-xs text-indigo-500 hover:text-indigo-700">Clear All</button>
+        </div>
+        <div id="historyContainer" class="space-y-2">
+            <!-- History items will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const minInput = document.getElementById('minInput');
+        const maxInput = document.getElementById('maxInput');
+        const countInput = document.getElementById('countInput');
+        const excludeInput = document.getElementById('excludeInput');
+        const uniqueToggle = document.getElementById('uniqueToggle');
+        
+        const singleDisplay = document.getElementById('singleDisplay');
+        const singleValue = document.getElementById('singleValue');
+        const multiDisplay = document.getElementById('multiDisplay');
+        const errorMsg = document.getElementById('errorMsg');
+        const errorText = document.getElementById('errorText');
+        const historyContainer = document.getElementById('historyContainer');
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorMsg.classList.remove('hidden');
+            // Shake animation
+            errorMsg.classList.add('animate-pulse');
+            setTimeout(() => errorMsg.classList.remove('animate-pulse'), 500);
+        }
+
+        function hideError() {
+            errorMsg.classList.add('hidden');
+        }
+
+        function getExcludedNumbers() {
+            const raw = excludeInput.value;
+            if (!raw.trim()) return new Set();
+            
+            return new Set(
+                raw.split(',')
+                   .map(s => parseInt(s.trim()))
+                   .filter(n => !isNaN(n))
+            );
+        }
+
+        function resetDefaults() {
+            minInput.value = 1;
+            maxInput.value = 100;
+            countInput.value = 1;
+            excludeInput.value = '';
+            uniqueToggle.checked = true;
+            multiDisplay.innerHTML = '<span class="text-gray-400 text-sm font-medium">Ready to generate...</span>';
+            singleDisplay.classList.add('hidden');
+            hideError();
+        }
+
+        async function startGeneration() {
+            hideError();
+            
+            // 1. Get Values
+            const min = parseInt(minInput.value) || 0;
+            const max = parseInt(maxInput.value) || 0;
+            const count = parseInt(countInput.value) || 1;
+            const unique = uniqueToggle.checked;
+            const excluded = getExcludedNumbers();
+
+            // 2. Validation
+            if (min >= max) {
+                showError("Min value must be smaller than Max value.");
+                return;
+            }
+
+            if (count < 1) {
+                showError("You must generate at least 1 number.");
+                return;
+            }
+
+            const totalRangeSize = max - min + 1;
+            const availableNumbersSize = totalRangeSize - excluded.size;
+
+            if (unique && count > availableNumbersSize) {
+                showError(`Cannot generate ${count} unique numbers! Only ${availableNumbersSize} numbers are available in this range (excluding your skipped numbers).`);
+                return;
+            }
+
+            // 3. Clear Display
+            singleDisplay.classList.add('hidden');
+            multiDisplay.innerHTML = '';
+
+            // 4. Generate Logic
+            const generated = [];
+            
+            // Helper to generate one valid number
+            const generateOne = () => {
+                let num;
+                let attempts = 0;
+                do {
+                    num = Math.floor(Math.random() * (max - min + 1)) + min;
+                    attempts++;
+                    // Safety break for infinite loops (should be caught by validation above, but just in case)
+                    if (attempts > 1000) return null; 
+                } while (
+                    excluded.has(num) || 
+                    (unique && generated.includes(num))
+                );
+                return num;
+            };
+
+            // 5. Animation & Generation Loop
+            // If just 1 number, use the big display
+            if (count === 1) {
+                multiDisplay.classList.add('hidden');
+                singleDisplay.classList.remove('hidden');
+                
+                // Roll effect for single number
+                for(let i=0; i<8; i++) {
+                    singleValue.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
+                    singleValue.style.opacity = 0.5;
+                    await new Promise(r => setTimeout(r, 50));
+                }
+                
+                const final = generateOne();
+                if (final !== null) {
+                    singleValue.textContent = final;
+                    singleValue.style.opacity = 1;
+                    addToHistory([final]);
+                }
+            } 
+            else {
+                // Multiple numbers
+                multiDisplay.classList.remove('hidden');
+                
+                for (let i = 0; i < count; i++) {
+                    const num = generateOne();
+                    if (num !== null) {
+                        generated.push(num);
+                        
+                        // Create bubble
+                        const bubble = document.createElement('div');
+                        bubble.className = 'w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md number-pop';
+                        bubble.style.animationDelay = `${i * 0.05}s`; // Staggered animation
+                        bubble.textContent = num;
+                        multiDisplay.appendChild(bubble);
+                    }
+                }
+                addToHistory(generated);
+            }
+        }
+
+        function addToHistory(numbers) {
+            const row = document.createElement('div');
+            row.className = 'bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex items-center justify-between text-sm animate-pop-in';
+            
+            const numString = numbers.join(', ');
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            row.innerHTML = `
+                <div class="truncate pr-4 font-medium text-gray-700">${numString}</div>
+                <div class="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">${timestamp}</div>
+            `;
+            
+            historyContainer.prepend(row);
+            
+            if (historyContainer.children.length > 10) {
+                historyContainer.lastElementChild.remove();
+            }
+        }
+
+        function clearHistory() {
+            historyContainer.innerHTML = '';
+        }
+
+        // Trigger on Enter
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startGeneration();
+        });
+
+    </script>
+</body>
+</html>
