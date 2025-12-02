@@ -43,6 +43,25 @@
         .toggle-checkbox:checked + .toggle-label {
             background-color: #68D391;
         }
+
+        /* Accordion transition */
+        .history-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .history-content.open {
+            max-height: 300px; /* Arbitrary large height */
+            opacity: 1;
+        }
+
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        .chevron.rotate {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-gray-800 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-indigo-100">
@@ -133,16 +152,25 @@
                 <span>Generate</span>
             </button>
         </div>
-    </div>
-
-    <!-- History -->
-    <div class="mt-6 w-full max-w-lg">
-        <div class="flex items-center justify-between mb-2 px-1">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Session History</span>
-            <button onclick="clearHistory()" class="text-xs text-indigo-500 hover:text-indigo-700">Clear All</button>
-        </div>
-        <div id="historyContainer" class="space-y-2">
-            <!-- History items will appear here -->
+        
+        <!-- Collapsible History Section -->
+        <div class="border-t border-gray-100 bg-gray-50">
+            <button onclick="toggleHistory()" class="w-full px-6 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none group">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Session History</span>
+                    <span id="historyBadge" class="hidden px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded-full">0</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-indigo-500 hover:text-indigo-700 font-medium z-10" onclick="event.stopPropagation(); clearHistory()">Clear</span>
+                    <i id="historyChevron" class="fas fa-chevron-down text-gray-400 text-xs chevron"></i>
+                </div>
+            </button>
+            
+            <div id="historyContent" class="history-content bg-white px-6">
+                <div id="historyContainer" class="space-y-2 py-3">
+                    <div class="text-center text-gray-300 text-sm italic py-2">No history yet</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -159,12 +187,26 @@
         const multiDisplay = document.getElementById('multiDisplay');
         const errorMsg = document.getElementById('errorMsg');
         const errorText = document.getElementById('errorText');
+        
         const historyContainer = document.getElementById('historyContainer');
+        const historyContent = document.getElementById('historyContent');
+        const historyChevron = document.getElementById('historyChevron');
+        const historyBadge = document.getElementById('historyBadge');
+
+        function toggleHistory() {
+            const isOpen = historyContent.classList.contains('open');
+            if (isOpen) {
+                historyContent.classList.remove('open');
+                historyChevron.classList.remove('rotate');
+            } else {
+                historyContent.classList.add('open');
+                historyChevron.classList.add('rotate');
+            }
+        }
 
         function showError(msg) {
             errorText.textContent = msg;
             errorMsg.classList.remove('hidden');
-            // Shake animation
             errorMsg.classList.add('animate-pulse');
             setTimeout(() => errorMsg.classList.remove('animate-pulse'), 500);
         }
@@ -220,7 +262,7 @@
             const availableNumbersSize = totalRangeSize - excluded.size;
 
             if (unique && count > availableNumbersSize) {
-                showError(`Cannot generate ${count} unique numbers! Only ${availableNumbersSize} numbers are available in this range (excluding your skipped numbers).`);
+                showError(`Cannot generate ${count} unique numbers! Only ${availableNumbersSize} numbers are available in this range.`);
                 return;
             }
 
@@ -238,7 +280,6 @@
                 do {
                     num = Math.floor(Math.random() * (max - min + 1)) + min;
                     attempts++;
-                    // Safety break for infinite loops (should be caught by validation above, but just in case)
                     if (attempts > 1000) return null; 
                 } while (
                     excluded.has(num) || 
@@ -248,12 +289,10 @@
             };
 
             // 5. Animation & Generation Loop
-            // If just 1 number, use the big display
             if (count === 1) {
                 multiDisplay.classList.add('hidden');
                 singleDisplay.classList.remove('hidden');
                 
-                // Roll effect for single number
                 for(let i=0; i<8; i++) {
                     singleValue.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
                     singleValue.style.opacity = 0.5;
@@ -268,18 +307,14 @@
                 }
             } 
             else {
-                // Multiple numbers
                 multiDisplay.classList.remove('hidden');
-                
                 for (let i = 0; i < count; i++) {
                     const num = generateOne();
                     if (num !== null) {
                         generated.push(num);
-                        
-                        // Create bubble
                         const bubble = document.createElement('div');
                         bubble.className = 'w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md number-pop';
-                        bubble.style.animationDelay = `${i * 0.05}s`; // Staggered animation
+                        bubble.style.animationDelay = `${i * 0.05}s`;
                         bubble.textContent = num;
                         multiDisplay.appendChild(bubble);
                     }
@@ -288,9 +323,16 @@
             }
         }
 
+        let historyCount = 0;
+
         function addToHistory(numbers) {
+            // Remove "No history" text if present
+            if (historyCount === 0) {
+                historyContainer.innerHTML = '';
+            }
+
             const row = document.createElement('div');
-            row.className = 'bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex items-center justify-between text-sm animate-pop-in';
+            row.className = 'bg-slate-50 p-3 rounded-lg border border-gray-100 shadow-sm flex items-center justify-between text-sm animate-pop-in';
             
             const numString = numbers.join(', ');
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -302,13 +344,20 @@
             
             historyContainer.prepend(row);
             
-            if (historyContainer.children.length > 10) {
+            // Update badge
+            historyCount++;
+            historyBadge.textContent = historyCount;
+            historyBadge.classList.remove('hidden');
+
+            if (historyContainer.children.length > 20) {
                 historyContainer.lastElementChild.remove();
             }
         }
 
         function clearHistory() {
-            historyContainer.innerHTML = '';
+            historyContainer.innerHTML = '<div class="text-center text-gray-300 text-sm italic py-2">No history yet</div>';
+            historyCount = 0;
+            historyBadge.classList.add('hidden');
         }
 
         // Trigger on Enter
